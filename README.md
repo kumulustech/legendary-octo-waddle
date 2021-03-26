@@ -11,6 +11,13 @@ While the basic demo follows the following "sequence", it would be trivial to au
   Alert Manager - discovers the alert state, and sends the alert details to the configured service.
   Alert "rollback" service - recieves the request, and reverts the broken service to the previously deployed version
 
+## Prerequisites
+
+Kubectl: `brew install kubectl`
+Helm:   `brew install helm`
+
+A kubernetes cluster with at least 5 2c 4Gi worker nodes (sclaed for the BofA application)
+
 ## Setup
 
 To enable the demostration, bring up a k8s cluster (note that for the bofa test app, 5x 2c/4Gi machines seems to be about the minimum), use Helm 3 to install prometheus along with the alertmanager-values.yaml (add it as a values file with the helm install) to the monitoring namespace, apply the bofa app (bofa namespace) and deploy the rollout.yaml manifest to the bofa namespace.

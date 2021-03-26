@@ -3,6 +3,7 @@ requires = [
     "click",
 "Flask",
 "kubernetes",
+"requests",
 "itsdangerous",
 "Jinja2",
 "MarkupSafe",

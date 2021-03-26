@@ -4,72 +4,34 @@ A simple Flask based webhook utility to accept an Alertmanager Alert and trigger
 
 ## Install
 
-1. Install a K8s Cluster (GCP, EKS, etc. should all be fine)
-2. Install prometheus and the prometheus alert manager (see the [helm-prometheus](file:///../helm-prometheus) directory).
-3. Launch the rollout.yaml app against the namespace of the app (note the service account assumes 'bofa' as the namespace, see the end of the rollout.yaml document)
+Use the pre-build container available on docker hub `kumulustech/rollback:0.1.0`, you can build
+
+```or```
+
+Build the container and push it to your own registry:
+
+```sh
+export REGISTRY_PATH=${YOUR_REGISTRY:-kumulustech}
+docker build . -t ${REGISTRY_PATH}/rollback:0.1.0
+docker push ${REGISTRY_PATH}/rollback:0.1.0 && docker push ${REGISTRY_PATH}/rollback:latest
+```
+
+and update the `image:` key value in the rollout.yaml document to `${REGISTRY_PATH}/rollback:0.1.0`
+
+## Deploy to k8s
+
+*NOTE* The rollback.yaml document has hardcoded expectations (for ClusterRoleBinding) to the 'bofa' namespace. Update if the rollback is going to run in a different namespace.
+
+*NOTE* As specified above, if you build your own container, please update the image parameter in the rollback.yaml document
+
+```sh
+kubectl apply -f rollback.yaml -n bofa
+```
 
 ## Test
 
-### 1. Install an application
-
-(see the bofa app [helm-prometheus/bofa](file:///../helm-prometheus/bofa) directory) 
-
-```sh
-kubectl create ns bofa; kubectl apply -f helm-prometheus/bofa -n bofa
-```
-
-### 2. Verify that the app is running
-
-```sh
-kubectl port-forward -n bofa svc/frontend 8080:80 >& /dev/null & curl localhost:8080
-```
-
-### 3. Trigger an update to the frontend app 
-
-We'll emulate a new release that requires more capacity, which, on the target cluster is unprovisionable (e.g. too much memory requested)
-
-```sh
-kubectl apply -f helm-prometheus/bofa-update/frontend.yaml
-```
-
-### 4. verify that there is a pod that is "unprovisionable"
-
-```sh
-kubectl get pods -l app=frontend
-```
-
-### 5. wait ~3 minutes.
-  
-The rollback function should rollback to the previous (initial good) cofiguration is re-applied. Verify that there is no longer a pod that is "unprovisionable"
-
-```sh
-kubectl get pods -l app=frontend
-```
-
-
-## Additional queries
-
-check to see if the pods are running:
-
-```sh
- kubectl get pods -n bofa
-```
-
-Check the Prometheus ALERTS metric:
-
-```sh
-kubectl port-forward pod/`kubectl get pods -l component=server -n monitoring | awk '/Running/ {print $1}'` -n monitoring 9090
-
-curl http://localhost:9090/api/v1/alerts
-```
-
-Check the state of the frontend deployment rollout:
-
-```sh
-kubectl rollout history deploy/frontend
-
-kubectl rollout undo deploy/frontend --to-revision={previous}
-```
+TBD.  there is a sample test script in tests/test.py, but needs a bypass for the 
+required "in cluster" kubernetes config.
 
 ## Functional Concept
 
@@ -122,5 +84,4 @@ The expression will generate a label of the form:
 {"alerts":{"labels":{"alertname":"PodUnscheduleable","pod":"deployment-~rs~-~pod~","severity":"rollback"}}}
 ```
 
-Alertmanager will then send the alert message to the webhook as configured, and that will trigger a rollback to
-the previous deployment revision.
+Alertmanager will then send the alert message to the webhook as configured, and that will trigger a rollback to the previous deployment revision.

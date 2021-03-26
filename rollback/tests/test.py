@@ -7,25 +7,9 @@ import json
 
 
 def main():
-    job_id = str(uuid.uuid4())
-
     url = "http://127.0.0.1:5000/api/"
     header = {"content-type": "application/json", "accepts": "application/json"}
-    data = {
-        "version": "4",
-        "groupKey": "UnschedulablePods",
-        "truncatedAlerts": 0,
-        "status": "firing",
-        "externalURL": "http://alerts.svc.monitoring",
-        "alerts": [
-            {
-                "status": "firing",
-                "labels": {"pod": "frontend-123sdf234-234sdf"},
-                "annotations": {},
-                "generatorURL": "prometheus alert",
-            },
-        ],
-    }
+
     data = {
         "receiver": "rollback-webhook",
         "status": "resolved",

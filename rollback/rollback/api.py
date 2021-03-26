@@ -32,7 +32,7 @@ def api():
         logging.info(f"api:root:POST - received request: {record}")
         fix_issue(record)
         return f"{record}"
-    logging.info(f"api:root:GET - received parameters: {request.parameters}")
+    logging.info(f"api:root:GET - received parameters: {request.status_code}")
     return '{"status":"ok"}'
 
 
@@ -51,8 +51,8 @@ def fix_issue(record):
     for item in deployments.items:
         if deployment in item.metadata.name:
             dep = api_client.sanitize_for_serialization(item)
-            logging.info(
-                f"api:fix_issue - pod resources: {dep['spec']['template']['spec']['containers'][0]['resources']}"
+            logging.debug(
+                f"api:fix_issue - pod spec: {dep['spec']}"
             )
     spec = []
     for n in replicasets.items:
@@ -96,21 +96,22 @@ def fix_issue(record):
                     "value": dep["metadata"]["annotations"],
                 },
             ]
-            logging.info(f"api:fix_issue - patch body {body}")
+            logging.debug(f"api:fix_issue - patch body {body}")
         logging.info(
             f"api:fix_issue - rev: {item['metadata']['annotations']['deployment.kubernetes.io/revision']} \n{item['spec']['template']['spec']['containers'][0]['resources']}"
         )
 
-    logging.info(
-        f"api:fix_issue: - rolling back to spec {body[0]['value']['spec']['containers'][0]['resources']}"
+    logging.debug(
+        f"api:fix_issue: - rolling back to spec {body[0]}"
     )
     response = apps_client.patch_namespaced_deployment(deployment, namespace, body)
+    logging.debug(f"api_fix_issue: - K8s API patch response {response}")
     logging.info(f"api:fix_issue: - Rolled back {deployment} to version {prev_key}")
 
     deployments = apps_client.list_namespaced_deployment(namespace)
     for item in deployments.items:
         if deployment in item.metadata.name:
             dep = api_client.sanitize_for_serialization(item)
-            logging.info(
+            logging.debug(
                 f"api:fix_issue - Post patch deployment container spec {dep['spec']['template']['spec']['containers'][0]['resources']}"
             )

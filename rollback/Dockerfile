@@ -5,8 +5,7 @@ COPY requirements.txt .
 RUN python3 -m pip install -U pip setuptools wheel -r requirements.txt
 
 ENV FLASK_APP=rollback
-ENV FLASK_ENV=development
-ENV FLASK_DEBUG=True
+
 EXPOSE 8080
 
 WORKDIR /app

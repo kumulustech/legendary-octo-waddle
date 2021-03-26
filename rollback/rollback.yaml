@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rollback
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rollback
+  template:
+    metadata:
+      labels:
+        app: rollback
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: alerts
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: rollback
+        image: kumulustech/rollback:0.1.0
+        imagePullPolicy: Always
+        env:
+        - name: VERSION
+          value: "v0.1.0"
+        - name: PORT
+          value: "8080"
+        - name: ENABLE_TRACING
+          value: "false"
+        - name: SCHEME
+          value: "http"
+         # Valid levels are debug, info, warning, error, critical. If no valid level is set, gunicorn will default to info.
+        - name: LOG_LEVEL
+          value: "info"
+        readinessProbe:
+          httpGet:
+            path: /ready/
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          timeoutSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rollback
+spec:
+  type: ClusterIP
+  selector:
+    app: rollback
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alerts
+  labels:
+    app.kubernetes.io/name: alerts
+    app.kubernetes.io/component: core
+
+---
+# Cluster Role for the servo itself
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: alerts
+  labels:
+    app.kubernetes.io/name: alerts
+    app.kubernetes.io/component: core
+rules:
+- apiGroups: ["apps", "extensions"]
+  resources: ["deployments", "deployments/status", "replicasets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: [""]
+  resources: ["pods", "pods/logs", "pods/status", "pods/exec", "pods/portforward", "services"]
+  verbs: ["create", "delete", "get", "list", "watch", "update", "patch" ]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list"]
+
+
+---
+# Bind the Servo Cluster Role to the servo Service Account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: alerts
+  labels:
+    app.kubernetes.io/name: alerts
+    app.kubernetes.io/component: core
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: alerts
+subjects:
+- kind: ServiceAccount
+  name: alerts
+  namespace: bofa

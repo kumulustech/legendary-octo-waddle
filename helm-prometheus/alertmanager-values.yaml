@@ -1,0 +1,32 @@
+alertmanagerFiles:
+  alertmanager.yml:
+
+    global: {}
+    receivers:
+      - name: default-receiver
+      - name: rollback-webhook
+        webhook_configs:
+          - url: "http://rollback.bofa.svc/api/"
+    route:
+      group_wait: 10s
+      group_interval: 5m
+      receiver: default-receiver
+      repeat_interval: 3h
+      
+      routes: 
+        - receiver: rollback-webhook
+          match_re:
+            severity: rollback
+serverFiles:
+  alerting_rules.yml: |
+    groups:
+    - name: deployment state
+      rules:
+      - alert: PodUnscheduleable
+        expr: sum by (pod) (kube_pod_status_unschedulable) > 0
+        for: 3m
+        labels:
+          severity: rollback
+        annotations:
+          summary: "Pod {{ $labels.pod }} update is unschedulable"
+          description: "Pod {{ $labels.pod }} has be unschedulable for more than 3 minutes.  Rollback should trigger"

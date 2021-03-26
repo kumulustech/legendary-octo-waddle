@@ -1,0 +1,12 @@
+click
+Flask
+itsdangerous
+Jinja2
+MarkupSafe
+Werkzeug
+gunicorn
+yapf
+black
+pylint
+kubernetes
+requests

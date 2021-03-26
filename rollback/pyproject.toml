@@ -1,0 +1,12 @@
+[build-system]
+requires = [
+    "click",
+"Flask",
+"kubernetes",
+"itsdangerous",
+"Jinja2",
+"MarkupSafe",
+"Werkzeug",
+"gunicorn",
+]
+build-backend = "setuptools.build_meta"

@@ -1,3 +1,4 @@
+# Details: https://prometheus.io/docs/alerting/latest/configuration/
 alertmanagerFiles:
   alertmanager.yml:
     global: {}
@@ -7,8 +8,10 @@ alertmanagerFiles:
         webhook_configs:
           - url: "http://rollback.bofa.svc/api/"
     route:
-      group_wait: 10s
-      group_interval: 90s
+      # how long do I wait before I trigger an alert
+      group_wait: 0s
+      # how long do I wait before I trigger a new alert if a change occurs after an initial alert
+      group_interval: 30s
       receiver: default-receiver
       repeat_interval: 10m
       
@@ -16,6 +19,7 @@ alertmanagerFiles:
         - receiver: rollback-webhook
           match_re:
             severity: rollback
+# Details: https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
 serverFiles:
   alerting_rules.yml:
     groups:
@@ -23,7 +27,8 @@ serverFiles:
       rules:
       - alert: PodUnscheduleable
         expr: sum by (pod) (kube_pod_status_unschedulable) > 0
-        for: 1m
+        # how long do I wait (and keep scraping the api) before I go from pending to active alert
+        for: 20s
         labels:
           severity: rollback
         annotations:
